@@ -1,0 +1,13 @@
+
+module ovslocal 1.0;
+
+require {
+	type unreserved_port_t;
+	type openvswitch_t;
+	class tcp_socket name_connect;
+}
+
+#============= openvswitch_t ==============
+
+#!!!! This avc can be allowed using the boolean 'nis_enabled'
+allow openvswitch_t unreserved_port_t:tcp_socket name_connect;
