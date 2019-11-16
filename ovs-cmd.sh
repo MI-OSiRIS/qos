@@ -14,6 +14,9 @@ usage() {
 }
 
 if [ "$CMD" == "clear" ]; then
+    [ $ARGC -lt 2 ] && usage
+
+    $DEBUG ovs-vsctl -- destroy QoS $IFACE -- clear Port $IFACE qos
     $DEBUG ovs-vsctl -- --all destroy QoS -- --all destroy QoS
     $DEBUG ovs-vsctl -- --all destroy Queue -- --all destroy Queue
 fi
@@ -34,9 +37,12 @@ if [ "$CMD" == "add" ]; then
          queues:${NAME}=@q${NAME}m -- \
 	   --id=@q${NAME}m create queue other-config:max-rate=${RATE}
 
-    $DEBUG ovs-vsctl -- --columns=name,ofport list Interface
-    
+    #$DEBUG ovs-vsctl -- --columns=name,ofport list Interface
+    $DEBUG ovs-appctl qos/show $IFACE
+
     #tc class change dev $IFACE parent 1:fffe classid 1:385 htb prio 0 rate 12Kbit \
     #   ceil 990Mbit burst 10000b cburst 1000000b
     #ovs-ofctl add-flow ovsbr0 ip,nw_dst=149.165.232.118,in_port=1,actions=set_queue:400,normal
 fi
+
+[ $ARGC -lt 1 ] && usage
