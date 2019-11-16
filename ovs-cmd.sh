@@ -1,22 +1,42 @@
 #!/bin/bash
 
-ovs-vsctl del-port ovsbr0 ens10
-ovs-vsctl -- --all destroy QoS -- --all destroy QoS
-ovs-vsctl -- --all destroy Queue -- --all destroy Queue
-ovs-vsctl add-port ovsbr0 ens10
+#DEBUG="echo "
 
-ovs-vsctl -- \
-set port ens10 qos=@newqos -- \
-  --id=@newqos create qos type=linux-htb \
-      other-config:max-rate=10000000000 \
-      queues:400=@q400m \
-      queues:900=@q990m -- \
-  --id=@q400m create queue other-config:max-rate=340000000 -- \
-  --id=@q990m create queue other-config:max-rate=990000000
+ARGC=$#
+CMD=$1
+IFACE=$2
+NAME=$3
+RATE=$4
 
-ovs-vsctl -- --columns=name,ofport list Interface
+usage() {
+    echo "$0 add|clear|show iface name rate"
+    exit 1
+}
 
-tc class change dev ens10 parent 1:fffe classid 1:385 htb prio 0 rate 12Kbit ceil 990Mbit burst 10000b cburst 1000000b
-tc class change dev ens10 parent 1:fffe classid 1:191 htb prio 0 rate 12Kbit ceil 340Mbit burst 10000b cburst 1000000b
-#ovs-ofctl add-flow ovsbr0 ip,nw_dst=149.165.232.118,in_port=1,actions=set_queue:400,normal
+if [ "$CMD" == "clear" ]; then
+    $DEBUG ovs-vsctl -- --all destroy QoS -- --all destroy QoS
+    $DEBUG ovs-vsctl -- --all destroy Queue -- --all destroy Queue
+fi
 
+if [ "$CMD" == "show" ]; then
+    [ $ARGC -lt 2 ] && usage
+
+    $DEBUG ovs-appctl qos/show $IFACE
+fi
+
+if [ "$CMD" == "add" ]; then
+    [ $ARGC -lt 4 ] && usage
+    
+    $DEBUG ovs-vsctl -- \
+	 set port $IFACE qos=@newqos -- \
+	   --id=@newqos create qos type=linux-htb \
+         other-config:max-rate=$RATE \
+         queues:${NAME}=@q${NAME}m -- \
+	   --id=@q${NAME}m create queue other-config:max-rate=${RATE}
+
+    $DEBUG ovs-vsctl -- --columns=name,ofport list Interface
+    
+    #tc class change dev $IFACE parent 1:fffe classid 1:385 htb prio 0 rate 12Kbit \
+    #   ceil 990Mbit burst 10000b cburst 1000000b
+    #ovs-ofctl add-flow ovsbr0 ip,nw_dst=149.165.232.118,in_port=1,actions=set_queue:400,normal
+fi
