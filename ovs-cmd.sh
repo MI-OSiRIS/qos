@@ -2,6 +2,8 @@
 
 #DEBUG="echo "
 
+DEF_RATE=10000000000
+
 ARGC=$#
 CMD=$1
 IFACE=$2
@@ -33,7 +35,7 @@ if [ "$CMD" == "add" ]; then
     $DEBUG ovs-vsctl -- \
 	 set port $IFACE qos=@newqos -- \
 	   --id=@newqos create qos type=linux-htb \
-         other-config:max-rate=$RATE \
+         other-config:max-rate=$DEF_RATE \
          queues:${NAME}=@q${NAME}m -- \
 	   --id=@q${NAME}m create queue other-config:max-rate=${RATE}
 
